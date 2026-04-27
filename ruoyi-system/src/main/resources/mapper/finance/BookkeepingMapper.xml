@@ -1,0 +1,261 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.system.mapper.finance.BookkeepingMapper">
+
+    <resultMap id="BookkeepingResult" type="Bookkeeping">
+        <id property="bookkeepingId" column="bookkeeping_id"/>
+        <result property="entryNo" column="entry_no"/>
+        <result property="businessDate" column="business_date"/>
+        <result property="entryType" column="entry_type"/>
+        <result property="category" column="category"/>
+        <result property="categoryName" column="category_name"/>
+        <result property="totalAmount" column="total_amount"/>
+        <result property="paidAmount" column="paid_amount"/>
+        <result property="unpaidAmount" column="unpaid_amount"/>
+        <result property="status" column="status"/>
+        <result property="fundAccountId" column="fund_account_id"/>
+        <result property="fundAccountName" column="fund_account_name"/>
+        <result property="paymentMethod" column="payment_method"/>
+        <result property="handlerName" column="handler_name"/>
+        <result property="customerName" column="customer_name"/>
+        <result property="customerPhone" column="customer_phone"/>
+        <result property="licensePlate" column="license_plate"/>
+        <result property="carModel" column="car_model"/>
+        <result property="businessDesc" column="business_desc"/>
+        <result property="delFlag" column="del_flag"/>
+        <result property="createBy" column="create_by"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateBy" column="update_by"/>
+        <result property="updateTime" column="update_time"/>
+        <result property="remark" column="remark"/>
+    </resultMap>
+
+    <resultMap id="BookkeepingPaymentResult" type="BookkeepingPayment">
+        <id property="paymentId" column="payment_id"/>
+        <result property="bookkeepingId" column="bookkeeping_id"/>
+        <result property="entryType" column="entry_type"/>
+        <result property="paymentAmount" column="payment_amount"/>
+        <result property="paymentTime" column="payment_time"/>
+        <result property="fundAccountId" column="fund_account_id"/>
+        <result property="fundAccountName" column="fund_account_name"/>
+        <result property="paymentMethod" column="payment_method"/>
+        <result property="delFlag" column="del_flag"/>
+        <result property="createBy" column="create_by"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateBy" column="update_by"/>
+        <result property="updateTime" column="update_time"/>
+        <result property="remark" column="remark"/>
+    </resultMap>
+
+    <sql id="bookkeepingColumns">
+        select bookkeeping_id, entry_no, business_date, entry_type, category,
+            case
+                when entry_type = '1' and category = '1' then '维修收入'
+                when entry_type = '1' and category = '2' then '保养收入'
+                when entry_type = '1' and category = '3' then '配件销售'
+                when entry_type = '1' and category = '4' then '其他收入'
+                when entry_type = '2' and category = '1' then '配件采购'
+                when entry_type = '2' and category = '2' then '人工工资'
+                when entry_type = '2' and category = '3' then '房租水电'
+                when entry_type = '2' and category = '4' then '其他支出'
+                else category
+            end as category_name,
+            total_amount, paid_amount, unpaid_amount, status, fund_account_id, fund_account_name,
+            payment_method, handler_name, customer_name, customer_phone, license_plate, car_model,
+            business_desc, del_flag, create_by, create_time, update_by, update_time, remark
+        from acct_bookkeeping
+    </sql>
+
+    <select id="selectBookkeepingList" parameterType="Bookkeeping" resultMap="BookkeepingResult">
+        <include refid="bookkeepingColumns"/>
+        <where>
+            del_flag = '0'
+            <if test="entryType != null and entryType != ''">
+                and entry_type = #{entryType}
+            </if>
+            <if test="category != null and category != ''">
+                and category = #{category}
+            </if>
+            <if test="status != null and status != ''">
+                and status = #{status}
+            </if>
+            <if test="fundAccountId != null">
+                and fund_account_id = #{fundAccountId}
+            </if>
+            <if test="customerName != null and customerName != ''">
+                and customer_name like concat('%', #{customerName}, '%')
+            </if>
+            <if test="licensePlate != null and licensePlate != ''">
+                and license_plate like concat('%', #{licensePlate}, '%')
+            </if>
+            <if test="params.beginBusinessDate != null and params.beginBusinessDate != ''">
+                and date_format(business_date, '%Y-%m-%d') &gt;= date_format(#{params.beginBusinessDate}, '%Y-%m-%d')
+            </if>
+            <if test="params.endBusinessDate != null and params.endBusinessDate != ''">
+                and date_format(business_date, '%Y-%m-%d') &lt;= date_format(#{params.endBusinessDate}, '%Y-%m-%d')
+            </if>
+        </where>
+        order by business_date desc, bookkeeping_id desc
+    </select>
+
+    <select id="selectBookkeepingById" parameterType="Long" resultMap="BookkeepingResult">
+        <include refid="bookkeepingColumns"/>
+        where bookkeeping_id = #{bookkeepingId} and del_flag = '0'
+    </select>
+
+    <insert id="insertBookkeeping" parameterType="Bookkeeping" useGeneratedKeys="true" keyProperty="bookkeepingId">
+        insert into acct_bookkeeping(
+            entry_no, business_date, entry_type, category, total_amount, paid_amount, unpaid_amount,
+            status, fund_account_id, fund_account_name, payment_method, handler_name, customer_name,
+            customer_phone, license_plate, car_model, business_desc, del_flag, create_by, create_time, remark
+        ) values (
+            #{entryNo}, #{businessDate}, #{entryType}, #{category}, #{totalAmount}, #{paidAmount}, #{unpaidAmount},
+            #{status}, #{fundAccountId}, #{fundAccountName}, #{paymentMethod}, #{handlerName}, #{customerName},
+            #{customerPhone}, #{licensePlate}, #{carModel}, #{businessDesc}, #{delFlag}, #{createBy}, sysdate(), #{remark}
+        )
+    </insert>
+
+    <update id="updateBookkeeping" parameterType="Bookkeeping">
+        update acct_bookkeeping
+        <set>
+            <if test="businessDate != null">business_date = #{businessDate},</if>
+            <if test="category != null and category != ''">category = #{category},</if>
+            <if test="totalAmount != null">total_amount = #{totalAmount},</if>
+            <if test="paidAmount != null">paid_amount = #{paidAmount},</if>
+            <if test="unpaidAmount != null">unpaid_amount = #{unpaidAmount},</if>
+            <if test="status != null and status != ''">status = #{status},</if>
+            <if test="fundAccountId != null">fund_account_id = #{fundAccountId},</if>
+            <if test="fundAccountName != null">fund_account_name = #{fundAccountName},</if>
+            <if test="paymentMethod != null">payment_method = #{paymentMethod},</if>
+            <if test="handlerName != null">handler_name = #{handlerName},</if>
+            <if test="customerName != null">customer_name = #{customerName},</if>
+            <if test="customerPhone != null">customer_phone = #{customerPhone},</if>
+            <if test="licensePlate != null">license_plate = #{licensePlate},</if>
+            <if test="carModel != null">car_model = #{carModel},</if>
+            <if test="businessDesc != null">business_desc = #{businessDesc},</if>
+            <if test="remark != null">remark = #{remark},</if>
+            <if test="updateBy != null and updateBy != ''">update_by = #{updateBy},</if>
+            update_time = sysdate()
+        </set>
+        where bookkeeping_id = #{bookkeepingId}
+    </update>
+
+    <update id="deleteBookkeepingByIds" parameterType="Long">
+        update acct_bookkeeping
+        set del_flag = '2', update_time = sysdate()
+        where bookkeeping_id in
+        <foreach collection="array" item="bookkeepingId" open="(" separator="," close=")">
+            #{bookkeepingId}
+        </foreach>
+    </update>
+
+    <select id="selectBookkeepingPaymentListByBookkeepingId" parameterType="Long" resultMap="BookkeepingPaymentResult">
+        select payment_id, bookkeeping_id, entry_type, payment_amount, payment_time, fund_account_id, fund_account_name,
+            payment_method, del_flag, create_by, create_time, update_by, update_time, remark
+        from acct_bookkeeping_payment
+        where bookkeeping_id = #{bookkeepingId} and del_flag = '0'
+        order by payment_time asc, payment_id asc
+    </select>
+
+    <insert id="insertBookkeepingPayment" parameterType="BookkeepingPayment" useGeneratedKeys="true" keyProperty="paymentId">
+        insert into acct_bookkeeping_payment(
+            bookkeeping_id, entry_type, payment_amount, payment_time, fund_account_id, fund_account_name,
+            payment_method, del_flag, create_by, create_time, remark
+        ) values (
+            #{bookkeepingId}, #{entryType}, #{paymentAmount}, #{paymentTime}, #{fundAccountId}, #{fundAccountName},
+            #{paymentMethod}, #{delFlag}, #{createBy}, sysdate(), #{remark}
+        )
+    </insert>
+
+    <update id="updateBookkeepingPayment" parameterType="BookkeepingPayment">
+        update acct_bookkeeping_payment
+        <set>
+            <if test="paymentAmount != null">payment_amount = #{paymentAmount},</if>
+            <if test="paymentTime != null">payment_time = #{paymentTime},</if>
+            <if test="fundAccountId != null">fund_account_id = #{fundAccountId},</if>
+            <if test="fundAccountName != null">fund_account_name = #{fundAccountName},</if>
+            <if test="paymentMethod != null">payment_method = #{paymentMethod},</if>
+            <if test="remark != null">remark = #{remark},</if>
+            <if test="updateBy != null and updateBy != ''">update_by = #{updateBy},</if>
+            update_time = sysdate()
+        </set>
+        where payment_id = #{paymentId}
+    </update>
+
+    <update id="deleteBookkeepingPaymentByBookkeepingId" parameterType="Long">
+        update acct_bookkeeping_payment
+        set del_flag = '2', update_time = sysdate()
+        where bookkeeping_id = #{bookkeepingId}
+    </update>
+
+    <update id="deleteBookkeepingPaymentsByBookkeepingIds" parameterType="Long">
+        update acct_bookkeeping_payment
+        set del_flag = '2', update_time = sysdate()
+        where bookkeeping_id in
+        <foreach collection="array" item="bookkeepingId" open="(" separator="," close=")">
+            #{bookkeepingId}
+        </foreach>
+    </update>
+
+    <select id="selectTodayIncome" resultType="java.math.BigDecimal">
+        select coalesce(sum(total_amount), 0)
+        from acct_bookkeeping
+        where del_flag = '0' and entry_type = '1'
+          and date_format(business_date, '%Y-%m-%d') = date_format(sysdate(), '%Y-%m-%d')
+    </select>
+
+    <select id="selectMonthIncome" resultType="java.math.BigDecimal">
+        select coalesce(sum(total_amount), 0)
+        from acct_bookkeeping
+        where del_flag = '0' and entry_type = '1'
+          and date_format(business_date, '%Y-%m') = date_format(sysdate(), '%Y-%m')
+    </select>
+
+    <select id="selectMonthExpense" resultType="java.math.BigDecimal">
+        select coalesce(sum(total_amount), 0)
+        from acct_bookkeeping
+        where del_flag = '0' and entry_type = '2'
+          and date_format(business_date, '%Y-%m') = date_format(sysdate(), '%Y-%m')
+    </select>
+
+    <select id="selectCurrentDebtAmount" resultType="java.math.BigDecimal">
+        select coalesce(sum(unpaid_amount), 0)
+        from acct_bookkeeping
+        where del_flag = '0' and entry_type = '1' and unpaid_amount &gt; 0
+    </select>
+
+    <select id="selectIncomeCategoryStats" resultType="com.ruoyi.system.domain.finance.vo.BookkeepingCategoryStatsVO">
+        select category,
+            case
+                when category = '1' then '维修收入'
+                when category = '2' then '保养收入'
+                when category = '3' then '配件销售'
+                when category = '4' then '其他收入'
+                else category
+            end as category_name,
+            coalesce(sum(total_amount), 0) as total_amount
+        from acct_bookkeeping
+        where del_flag = '0' and entry_type = '1'
+        group by category
+        order by category
+    </select>
+
+    <select id="selectExpenseCategoryStats" resultType="com.ruoyi.system.domain.finance.vo.BookkeepingCategoryStatsVO">
+        select category,
+            case
+                when category = '1' then '配件采购'
+                when category = '2' then '人工工资'
+                when category = '3' then '房租水电'
+                when category = '4' then '其他支出'
+                else category
+            end as category_name,
+            coalesce(sum(total_amount), 0) as total_amount
+        from acct_bookkeeping
+        where del_flag = '0' and entry_type = '2'
+        group by category
+        order by category
+    </select>
+
+</mapper>

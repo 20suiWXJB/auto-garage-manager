@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.system.mapper.finance.FundAccountMapper">
+
+    <resultMap id="FundAccountResult" type="FundAccount">
+        <id property="fundAccountId" column="fund_account_id"/>
+        <result property="accountName" column="account_name"/>
+        <result property="accountType" column="account_type"/>
+        <result property="openingBalance" column="opening_balance"/>
+        <result property="status" column="status"/>
+        <result property="delFlag" column="del_flag"/>
+        <result property="createBy" column="create_by"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateBy" column="update_by"/>
+        <result property="updateTime" column="update_time"/>
+        <result property="remark" column="remark"/>
+    </resultMap>
+
+    <sql id="fundAccountColumns">
+        select fund_account_id, account_name, account_type, opening_balance, status, del_flag,
+            create_by, create_time, update_by, update_time, remark
+        from acct_fund_account
+    </sql>
+
+    <select id="selectFundAccountList" parameterType="FundAccount" resultMap="FundAccountResult">
+        <include refid="fundAccountColumns"/>
+        <where>
+            del_flag = '0'
+            <if test="accountName != null and accountName != ''">
+                and account_name like concat('%', #{accountName}, '%')
+            </if>
+            <if test="accountType != null and accountType != ''">
+                and account_type = #{accountType}
+            </if>
+            <if test="status != null and status != ''">
+                and status = #{status}
+            </if>
+        </where>
+        order by fund_account_id asc
+    </select>
+
+    <select id="selectFundAccountOptions" resultMap="FundAccountResult">
+        <include refid="fundAccountColumns"/>
+        where del_flag = '0'
+        order by status asc, fund_account_id asc
+    </select>
+
+    <select id="selectFundAccountById" parameterType="Long" resultMap="FundAccountResult">
+        <include refid="fundAccountColumns"/>
+        where fund_account_id = #{fundAccountId} and del_flag = '0'
+    </select>
+
+    <select id="checkAccountNameUnique" parameterType="String" resultMap="FundAccountResult">
+        <include refid="fundAccountColumns"/>
+        where account_name = #{accountName} and del_flag = '0' limit 1
+    </select>
+
+    <insert id="insertFundAccount" parameterType="FundAccount" useGeneratedKeys="true" keyProperty="fundAccountId">
+        insert into acct_fund_account(
+            account_name, account_type, opening_balance, status, del_flag, create_by, create_time, remark
+        ) values (
+            #{accountName}, #{accountType}, #{openingBalance}, #{status}, '0', #{createBy}, sysdate(), #{remark}
+        )
+    </insert>
+
+    <update id="updateFundAccount" parameterType="FundAccount">
+        update acct_fund_account
+        <set>
+            <if test="accountName != null and accountName != ''">account_name = #{accountName},</if>
+            <if test="accountType != null and accountType != ''">account_type = #{accountType},</if>
+            <if test="openingBalance != null">opening_balance = #{openingBalance},</if>
+            <if test="status != null and status != ''">status = #{status},</if>
+            <if test="remark != null">remark = #{remark},</if>
+            <if test="updateBy != null and updateBy != ''">update_by = #{updateBy},</if>
+            update_time = sysdate()
+        </set>
+        where fund_account_id = #{fundAccountId}
+    </update>
+
+    <update id="deleteFundAccountByIds" parameterType="Long">
+        update acct_fund_account
+        set del_flag = '2', update_time = sysdate()
+        where fund_account_id in
+        <foreach collection="array" item="fundAccountId" open="(" separator="," close=")">
+            #{fundAccountId}
+        </foreach>
+    </update>
+
+    <select id="countFundAccountUsed" parameterType="Long" resultType="int">
+        select
+            (select count(1) from acct_bookkeeping
+             where del_flag = '0' and fund_account_id in
+             <foreach collection="array" item="fundAccountId" open="(" separator="," close=")">
+                 #{fundAccountId}
+             </foreach>)
+            +
+            (select count(1) from acct_bookkeeping_payment
+             where del_flag = '0' and fund_account_id in
+             <foreach collection="array" item="fundAccountId" open="(" separator="," close=")">
+                 #{fundAccountId}
+             </foreach>)
+    </select>
+
+</mapper>
