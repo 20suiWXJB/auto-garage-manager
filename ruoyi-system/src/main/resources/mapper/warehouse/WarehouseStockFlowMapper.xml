@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.system.mapper.warehouse.WarehouseStockFlowMapper">
+
+    <resultMap id="WarehouseStockFlowResult" type="WarehouseStockFlow">
+        <id property="stockFlowId" column="stock_flow_id"/>
+        <result property="flowNo" column="flow_no"/>
+        <result property="businessType" column="business_type"/>
+        <result property="partId" column="part_id"/>
+        <result property="partCode" column="part_code"/>
+        <result property="partName" column="part_name"/>
+        <result property="specModel" column="spec_model"/>
+        <result property="unit" column="part_unit"/>
+        <result property="changeQuantity" column="change_quantity"/>
+        <result property="beforeStock" column="before_stock"/>
+        <result property="afterStock" column="after_stock"/>
+        <result property="businessTime" column="business_time"/>
+        <result property="handlerName" column="handler_name"/>
+        <result property="adjustDirection" column="adjust_direction"/>
+        <result property="delFlag" column="del_flag"/>
+        <result property="createBy" column="create_by"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateBy" column="update_by"/>
+        <result property="updateTime" column="update_time"/>
+        <result property="remark" column="remark"/>
+    </resultMap>
+
+    <sql id="warehouseStockFlowColumns">
+        select stock_flow_id, flow_no, business_type, part_id, part_code, part_name, spec_model, part_unit,
+            change_quantity, before_stock, after_stock, business_time, handler_name, adjust_direction,
+            del_flag, create_by, create_time, update_by, update_time, remark
+        from wh_stock_flow
+    </sql>
+
+    <select id="selectWarehouseStockFlowList" parameterType="WarehouseStockFlow" resultMap="WarehouseStockFlowResult">
+        <include refid="warehouseStockFlowColumns"/>
+        <where>
+            del_flag = '0'
+            <if test="flowNo != null and flowNo != ''">
+                and flow_no like concat('%', #{flowNo}, '%')
+            </if>
+            <if test="businessType != null and businessType != ''">
+                and business_type = #{businessType}
+            </if>
+            <if test="partCode != null and partCode != ''">
+                and part_code like concat('%', #{partCode}, '%')
+            </if>
+            <if test="partName != null and partName != ''">
+                and part_name like concat('%', #{partName}, '%')
+            </if>
+            <if test="handlerName != null and handlerName != ''">
+                and handler_name like concat('%', #{handlerName}, '%')
+            </if>
+            <if test="params.beginBusinessTime != null and params.beginBusinessTime != ''">
+                and date_format(business_time, '%Y-%m-%d') &gt;= date_format(#{params.beginBusinessTime}, '%Y-%m-%d')
+            </if>
+            <if test="params.endBusinessTime != null and params.endBusinessTime != ''">
+                and date_format(business_time, '%Y-%m-%d') &lt;= date_format(#{params.endBusinessTime}, '%Y-%m-%d')
+            </if>
+        </where>
+        order by business_time desc, stock_flow_id desc
+    </select>
+
+    <select id="selectWarehouseStockFlowById" parameterType="Long" resultMap="WarehouseStockFlowResult">
+        <include refid="warehouseStockFlowColumns"/>
+        where stock_flow_id = #{stockFlowId} and del_flag = '0'
+    </select>
+
+    <insert id="insertWarehouseStockFlow" parameterType="WarehouseStockFlow" useGeneratedKeys="true" keyProperty="stockFlowId">
+        insert into wh_stock_flow(
+            flow_no, business_type, part_id, part_code, part_name, spec_model, part_unit,
+            change_quantity, before_stock, after_stock, business_time, handler_name,
+            adjust_direction, del_flag, create_by, create_time, remark
+        ) values (
+            #{flowNo}, #{businessType}, #{partId}, #{partCode}, #{partName}, #{specModel}, #{unit},
+            #{changeQuantity}, #{beforeStock}, #{afterStock}, #{businessTime}, #{handlerName},
+            #{adjustDirection}, #{delFlag}, #{createBy}, sysdate(), #{remark}
+        )
+    </insert>
+
+</mapper>
