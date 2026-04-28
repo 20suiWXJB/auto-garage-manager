@@ -1,0 +1,207 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.system.mapper.order.OrderInfoMapper">
+
+    <resultMap id="OrderInfoResult" type="OrderInfo">
+        <id property="orderId" column="order_id"/>
+        <result property="orderNo" column="order_no"/>
+        <result property="orderType" column="order_type"/>
+        <result property="orderStatus" column="order_status"/>
+        <result property="orderTime" column="order_time"/>
+        <result property="completedTime" column="completed_time"/>
+        <result property="customerName" column="customer_name"/>
+        <result property="customerPhone" column="customer_phone"/>
+        <result property="licensePlate" column="license_plate"/>
+        <result property="carModel" column="car_model"/>
+        <result property="serviceAmount" column="service_amount"/>
+        <result property="partAmount" column="part_amount"/>
+        <result property="totalAmount" column="total_amount"/>
+        <result property="paidAmount" column="paid_amount"/>
+        <result property="unpaidAmount" column="unpaid_amount"/>
+        <result property="bookkeepingId" column="bookkeeping_id"/>
+        <result property="bookkeepingEntryNo" column="bookkeeping_entry_no"/>
+        <result property="handlerName" column="handler_name"/>
+        <result property="delFlag" column="del_flag"/>
+        <result property="createBy" column="create_by"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateBy" column="update_by"/>
+        <result property="updateTime" column="update_time"/>
+        <result property="remark" column="remark"/>
+    </resultMap>
+
+    <resultMap id="OrderInfoDetailResult" type="OrderInfo" extends="OrderInfoResult">
+        <collection property="detailList" column="order_id" ofType="OrderDetail" select="selectOrderDetailListByOrderId"/>
+    </resultMap>
+
+    <resultMap id="OrderDetailResult" type="OrderDetail">
+        <id property="detailId" column="detail_id"/>
+        <result property="orderId" column="order_id"/>
+        <result property="detailType" column="detail_type"/>
+        <result property="lineNo" column="line_no"/>
+        <result property="itemName" column="item_name"/>
+        <result property="partId" column="part_id"/>
+        <result property="partCode" column="part_code"/>
+        <result property="partName" column="part_name"/>
+        <result property="specModel" column="spec_model"/>
+        <result property="unit" column="part_unit"/>
+        <result property="quantity" column="quantity"/>
+        <result property="unitPrice" column="unit_price"/>
+        <result property="amount" column="amount"/>
+        <result property="reservedQuantity" column="reserved_quantity"/>
+        <result property="createBy" column="create_by"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateBy" column="update_by"/>
+        <result property="updateTime" column="update_time"/>
+        <result property="remark" column="remark"/>
+    </resultMap>
+
+    <sql id="orderColumns">
+        select o.order_id, o.order_no, o.order_type, o.order_status, o.order_time, o.completed_time,
+            o.customer_name, o.customer_phone, o.license_plate, o.car_model, o.service_amount, o.part_amount,
+            o.total_amount, coalesce(b.paid_amount, o.paid_amount) as paid_amount,
+            coalesce(b.unpaid_amount, o.unpaid_amount) as unpaid_amount, o.bookkeeping_id, b.entry_no as bookkeeping_entry_no,
+            o.handler_name, o.del_flag, o.create_by, o.create_time, o.update_by, o.update_time, o.remark
+        from ord_order o
+        left join acct_bookkeeping b on b.bookkeeping_id = o.bookkeeping_id and b.del_flag = '0'
+    </sql>
+
+    <select id="selectOrderInfoList" parameterType="OrderInfo" resultMap="OrderInfoResult">
+        <include refid="orderColumns"/>
+        <where>
+            o.del_flag = '0'
+            <if test="orderNo != null and orderNo != ''">
+                and o.order_no like concat('%', #{orderNo}, '%')
+            </if>
+            <if test="orderType != null and orderType != ''">
+                and o.order_type = #{orderType}
+            </if>
+            <if test="orderStatus != null and orderStatus != ''">
+                and o.order_status = #{orderStatus}
+            </if>
+            <if test="customerName != null and customerName != ''">
+                and o.customer_name like concat('%', #{customerName}, '%')
+            </if>
+            <if test="licensePlate != null and licensePlate != ''">
+                and o.license_plate like concat('%', #{licensePlate}, '%')
+            </if>
+            <if test="params.beginOrderTime != null and params.beginOrderTime != ''">
+                and date_format(o.order_time, '%Y-%m-%d') &gt;= date_format(#{params.beginOrderTime}, '%Y-%m-%d')
+            </if>
+            <if test="params.endOrderTime != null and params.endOrderTime != ''">
+                and date_format(o.order_time, '%Y-%m-%d') &lt;= date_format(#{params.endOrderTime}, '%Y-%m-%d')
+            </if>
+        </where>
+        order by o.order_time desc, o.order_id desc
+    </select>
+
+    <select id="selectOrderInfoById" parameterType="Long" resultMap="OrderInfoDetailResult">
+        <include refid="orderColumns"/>
+        where o.order_id = #{orderId} and o.del_flag = '0'
+    </select>
+
+    <select id="selectOrderDetailListByOrderId" parameterType="Long" resultMap="OrderDetailResult">
+        select detail_id, order_id, detail_type, line_no, item_name, part_id, part_code, part_name,
+            spec_model, part_unit, quantity, unit_price, amount, reserved_quantity,
+            create_by, create_time, update_by, update_time, remark
+        from ord_order_detail
+        where order_id = #{orderId}
+        order by line_no asc, detail_id asc
+    </select>
+
+    <select id="selectOrderDetailExportList" parameterType="OrderInfo" resultType="com.ruoyi.system.domain.order.vo.OrderDetailExportVO">
+        select o.order_no as order_no, o.order_type as order_type, o.order_status as order_status,
+            o.customer_name as customer_name, o.customer_phone as customer_phone, o.license_plate as license_plate,
+            o.car_model as car_model, o.order_time as order_time, o.completed_time as completed_time,
+            d.detail_type as detail_type, d.part_code as item_code,
+            case when d.detail_type = '1' then d.item_name else d.part_name end as item_name,
+            d.spec_model as spec_model, d.part_unit as unit, d.quantity as quantity, d.unit_price as unit_price,
+            d.amount as amount, coalesce(b.paid_amount, o.paid_amount) as paid_amount,
+            coalesce(b.unpaid_amount, o.unpaid_amount) as unpaid_amount, o.handler_name as handler_name,
+            coalesce(d.remark, o.remark) as remark
+        from ord_order o
+        inner join ord_order_detail d on d.order_id = o.order_id
+        left join acct_bookkeeping b on b.bookkeeping_id = o.bookkeeping_id and b.del_flag = '0'
+        <where>
+            o.del_flag = '0'
+            <if test="orderNo != null and orderNo != ''">
+                and o.order_no like concat('%', #{orderNo}, '%')
+            </if>
+            <if test="orderType != null and orderType != ''">
+                and o.order_type = #{orderType}
+            </if>
+            <if test="orderStatus != null and orderStatus != ''">
+                and o.order_status = #{orderStatus}
+            </if>
+            <if test="customerName != null and customerName != ''">
+                and o.customer_name like concat('%', #{customerName}, '%')
+            </if>
+            <if test="licensePlate != null and licensePlate != ''">
+                and o.license_plate like concat('%', #{licensePlate}, '%')
+            </if>
+            <if test="params.beginOrderTime != null and params.beginOrderTime != ''">
+                and date_format(o.order_time, '%Y-%m-%d') &gt;= date_format(#{params.beginOrderTime}, '%Y-%m-%d')
+            </if>
+            <if test="params.endOrderTime != null and params.endOrderTime != ''">
+                and date_format(o.order_time, '%Y-%m-%d') &lt;= date_format(#{params.endOrderTime}, '%Y-%m-%d')
+            </if>
+        </where>
+        order by o.order_time desc, o.order_id desc, d.line_no asc
+    </select>
+
+    <insert id="insertOrderInfo" parameterType="OrderInfo" useGeneratedKeys="true" keyProperty="orderId">
+        insert into ord_order(
+            order_no, order_type, order_status, order_time, completed_time, customer_name, customer_phone,
+            license_plate, car_model, service_amount, part_amount, total_amount, paid_amount, unpaid_amount,
+            bookkeeping_id, handler_name, del_flag, create_by, create_time, remark
+        ) values (
+            #{orderNo}, #{orderType}, #{orderStatus}, #{orderTime}, #{completedTime}, #{customerName}, #{customerPhone},
+            #{licensePlate}, #{carModel}, #{serviceAmount}, #{partAmount}, #{totalAmount}, #{paidAmount}, #{unpaidAmount},
+            #{bookkeepingId}, #{handlerName}, #{delFlag}, #{createBy}, sysdate(), #{remark}
+        )
+    </insert>
+
+    <update id="updateOrderInfo" parameterType="OrderInfo">
+        update ord_order
+        <set>
+            <if test="orderStatus != null and orderStatus != ''">order_status = #{orderStatus},</if>
+            <if test="orderTime != null">order_time = #{orderTime},</if>
+            <if test="completedTime != null">completed_time = #{completedTime},</if>
+            <if test="customerName != null">customer_name = #{customerName},</if>
+            <if test="customerPhone != null">customer_phone = #{customerPhone},</if>
+            <if test="licensePlate != null">license_plate = #{licensePlate},</if>
+            <if test="carModel != null">car_model = #{carModel},</if>
+            <if test="serviceAmount != null">service_amount = #{serviceAmount},</if>
+            <if test="partAmount != null">part_amount = #{partAmount},</if>
+            <if test="totalAmount != null">total_amount = #{totalAmount},</if>
+            <if test="paidAmount != null">paid_amount = #{paidAmount},</if>
+            <if test="unpaidAmount != null">unpaid_amount = #{unpaidAmount},</if>
+            <if test="bookkeepingId != null">bookkeeping_id = #{bookkeepingId},</if>
+            <if test="handlerName != null">handler_name = #{handlerName},</if>
+            <if test="remark != null">remark = #{remark},</if>
+            <if test="updateBy != null and updateBy != ''">update_by = #{updateBy},</if>
+            update_time = sysdate()
+        </set>
+        where order_id = #{orderId}
+    </update>
+
+    <delete id="deleteOrderDetailByOrderId" parameterType="Long">
+        delete from ord_order_detail where order_id = #{orderId}
+    </delete>
+
+    <insert id="insertOrderDetailBatch">
+        insert into ord_order_detail(
+            order_id, detail_type, line_no, item_name, part_id, part_code, part_name, spec_model,
+            part_unit, quantity, unit_price, amount, reserved_quantity, create_by, create_time, remark
+        ) values
+        <foreach collection="list" item="item" separator=",">
+            (
+                #{item.orderId}, #{item.detailType}, #{item.lineNo}, #{item.itemName}, #{item.partId}, #{item.partCode},
+                #{item.partName}, #{item.specModel}, #{item.unit}, #{item.quantity}, #{item.unitPrice}, #{item.amount},
+                #{item.reservedQuantity}, #{item.createBy}, sysdate(), #{item.remark}
+            )
+        </foreach>
+    </insert>
+
+</mapper>

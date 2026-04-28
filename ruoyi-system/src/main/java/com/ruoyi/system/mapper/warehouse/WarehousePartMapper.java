@@ -30,4 +30,6 @@ public interface WarehousePartMapper
 
     int updatePartStock(@Param("partId") Long partId, @Param("beforeStock") BigDecimal beforeStock,
         @Param("afterStock") BigDecimal afterStock, @Param("updateBy") String updateBy);
+
+    List<WarehousePart> selectWarehousePartListByIds(@Param("partIds") List<Long> partIds);
 }

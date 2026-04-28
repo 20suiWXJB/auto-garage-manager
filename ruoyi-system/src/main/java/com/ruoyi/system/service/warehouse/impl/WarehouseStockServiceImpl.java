@@ -32,6 +32,10 @@ public class WarehouseStockServiceImpl implements IWarehouseStockService
 
     private static final String BUSINESS_TYPE_ADJUST = "3";
 
+    private static final String BUSINESS_TYPE_ORDER_RESERVE = "4";
+
+    private static final String BUSINESS_TYPE_ORDER_RELEASE = "5";
+
     private static final String ADJUST_DIRECTION_INCREASE = "1";
 
     private static final String ADJUST_DIRECTION_DECREASE = "2";
@@ -77,6 +81,20 @@ public class WarehouseStockServiceImpl implements IWarehouseStockService
         return executeStockOperation(BUSINESS_TYPE_ADJUST, operation);
     }
 
+    @Override
+    @Transactional
+    public int registerOrderReserve(WarehouseStockOperation operation)
+    {
+        return executeStockOperation(BUSINESS_TYPE_ORDER_RESERVE, operation);
+    }
+
+    @Override
+    @Transactional
+    public int registerOrderRelease(WarehouseStockOperation operation)
+    {
+        return executeStockOperation(BUSINESS_TYPE_ORDER_RELEASE, operation);
+    }
+
     private int executeStockOperation(String businessType, WarehouseStockOperation operation)
     {
         WarehousePart part = requirePart(operation.getPartId());
@@ -114,11 +132,23 @@ public class WarehouseStockServiceImpl implements IWarehouseStockService
         {
             return quantity;
         }
+        if (StringUtils.equals(BUSINESS_TYPE_ORDER_RELEASE, businessType))
+        {
+            return quantity;
+        }
         if (StringUtils.equals(BUSINESS_TYPE_OUT, businessType))
         {
             if (beforeStock.compareTo(quantity) < 0)
             {
                 throw new ServiceException("出库数量不能超过当前库存");
+            }
+            return quantity.negate();
+        }
+        if (StringUtils.equals(BUSINESS_TYPE_ORDER_RESERVE, businessType))
+        {
+            if (beforeStock.compareTo(quantity) < 0)
+            {
+                throw new ServiceException("库存不足，无法完成订单预扣");
             }
             return quantity.negate();
         }
@@ -139,6 +169,7 @@ public class WarehouseStockServiceImpl implements IWarehouseStockService
         WarehouseStockFlow stockFlow = new WarehouseStockFlow();
         stockFlow.setFlowNo(generateFlowNo(businessType));
         stockFlow.setBusinessType(businessType);
+        stockFlow.setBusinessNo(operation.getBusinessNo());
         stockFlow.setPartId(part.getPartId());
         stockFlow.setPartCode(part.getPartCode());
         stockFlow.setPartName(part.getPartName());
@@ -166,6 +197,14 @@ public class WarehouseStockServiceImpl implements IWarehouseStockService
         else if (StringUtils.equals(BUSINESS_TYPE_ADJUST, businessType))
         {
             prefix = "TJ";
+        }
+        else if (StringUtils.equals(BUSINESS_TYPE_ORDER_RESERVE, businessType))
+        {
+            prefix = "DK";
+        }
+        else if (StringUtils.equals(BUSINESS_TYPE_ORDER_RELEASE, businessType))
+        {
+            prefix = "SF";
         }
         return prefix + DateUtils.dateTime() + Seq.getId().substring(6);
     }

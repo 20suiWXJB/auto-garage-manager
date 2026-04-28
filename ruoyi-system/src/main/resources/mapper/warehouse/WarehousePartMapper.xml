@@ -56,6 +56,16 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         order by status asc, part_code asc
     </select>
 
+    <select id="selectWarehousePartListByIds" resultMap="WarehousePartResult">
+        <include refid="warehousePartColumns"/>
+        where del_flag = '0'
+          and part_id in
+        <foreach collection="partIds" item="partId" open="(" separator="," close=")">
+            #{partId}
+        </foreach>
+        order by part_id asc
+    </select>
+
     <select id="selectWarehousePartById" parameterType="Long" resultMap="WarehousePartResult">
         <include refid="warehousePartColumns"/>
         where part_id = #{partId} and del_flag = '0'

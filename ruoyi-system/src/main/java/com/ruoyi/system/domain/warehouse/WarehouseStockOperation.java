@@ -31,6 +31,8 @@ public class WarehouseStockOperation extends BaseEntity
 
     private String adjustDirection;
 
+    private String businessNo;
+
     @NotNull(message = "配件不能为空")
     public Long getPartId()
     {
@@ -87,6 +89,17 @@ public class WarehouseStockOperation extends BaseEntity
         this.adjustDirection = adjustDirection;
     }
 
+    @Size(max = 32, message = "业务单号长度不能超过32个字符")
+    public String getBusinessNo()
+    {
+        return businessNo;
+    }
+
+    public void setBusinessNo(String businessNo)
+    {
+        this.businessNo = businessNo;
+    }
+
     @Override
     public String toString()
     {
@@ -96,6 +109,7 @@ public class WarehouseStockOperation extends BaseEntity
             .append("businessTime", getBusinessTime())
             .append("handlerName", getHandlerName())
             .append("adjustDirection", getAdjustDirection())
+            .append("businessNo", getBusinessNo())
             .append("remark", getRemark())
             .toString();
     }

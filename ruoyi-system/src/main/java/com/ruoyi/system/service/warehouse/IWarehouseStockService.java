@@ -20,4 +20,8 @@ public interface IWarehouseStockService
     int registerStockOut(WarehouseStockOperation operation);
 
     int registerStockAdjust(WarehouseStockOperation operation);
+
+    int registerOrderReserve(WarehouseStockOperation operation);
+
+    int registerOrderRelease(WarehouseStockOperation operation);
 }

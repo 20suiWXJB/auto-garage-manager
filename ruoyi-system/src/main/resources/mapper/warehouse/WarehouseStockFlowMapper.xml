@@ -8,6 +8,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <id property="stockFlowId" column="stock_flow_id"/>
         <result property="flowNo" column="flow_no"/>
         <result property="businessType" column="business_type"/>
+        <result property="businessNo" column="business_no"/>
         <result property="partId" column="part_id"/>
         <result property="partCode" column="part_code"/>
         <result property="partName" column="part_name"/>
@@ -28,7 +29,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </resultMap>
 
     <sql id="warehouseStockFlowColumns">
-        select stock_flow_id, flow_no, business_type, part_id, part_code, part_name, spec_model, part_unit,
+        select stock_flow_id, flow_no, business_type, business_no, part_id, part_code, part_name, spec_model, part_unit,
             change_quantity, before_stock, after_stock, business_time, handler_name, adjust_direction,
             del_flag, create_by, create_time, update_by, update_time, remark
         from wh_stock_flow
@@ -43,6 +44,9 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             </if>
             <if test="businessType != null and businessType != ''">
                 and business_type = #{businessType}
+            </if>
+            <if test="businessNo != null and businessNo != ''">
+                and business_no like concat('%', #{businessNo}, '%')
             </if>
             <if test="partCode != null and partCode != ''">
                 and part_code like concat('%', #{partCode}, '%')
@@ -70,11 +74,11 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 
     <insert id="insertWarehouseStockFlow" parameterType="WarehouseStockFlow" useGeneratedKeys="true" keyProperty="stockFlowId">
         insert into wh_stock_flow(
-            flow_no, business_type, part_id, part_code, part_name, spec_model, part_unit,
+            flow_no, business_type, business_no, part_id, part_code, part_name, spec_model, part_unit,
             change_quantity, before_stock, after_stock, business_time, handler_name,
             adjust_direction, del_flag, create_by, create_time, remark
         ) values (
-            #{flowNo}, #{businessType}, #{partId}, #{partCode}, #{partName}, #{specModel}, #{unit},
+            #{flowNo}, #{businessType}, #{businessNo}, #{partId}, #{partCode}, #{partName}, #{specModel}, #{unit},
             #{changeQuantity}, #{beforeStock}, #{afterStock}, #{businessTime}, #{handlerName},
             #{adjustDirection}, #{delFlag}, #{createBy}, sysdate(), #{remark}
         )

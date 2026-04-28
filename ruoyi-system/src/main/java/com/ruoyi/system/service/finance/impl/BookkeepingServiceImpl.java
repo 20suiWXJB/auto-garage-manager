@@ -67,11 +67,12 @@ public class BookkeepingServiceImpl implements IBookkeepingService
     public int insertBookkeeping(Bookkeeping bookkeeping)
     {
         validateEntryType(bookkeeping.getEntryType());
-        FundAccount fundAccount = requireAvailableAccount(bookkeeping.getFundAccountId(), null);
         // 首次保存时直接把已收/未收/状态一次算完，避免前后端口径不一致。
         fillCreateAmounts(bookkeeping);
+        FundAccount fundAccount = resolveFundAccountForSave(bookkeeping.getFundAccountId(), bookkeeping.getEntryType(),
+            bookkeeping.getPaidAmount(), null);
         bookkeeping.setEntryNo(generateEntryNo(bookkeeping.getEntryType()));
-        bookkeeping.setFundAccountName(fundAccount.getAccountName());
+        fillFundAccountInfo(bookkeeping, fundAccount);
         bookkeeping.setDelFlag(DEL_FLAG_NORMAL);
         int rows = bookkeepingMapper.insertBookkeeping(bookkeeping);
         // 收入单首笔实收、支出单首笔付款都落一条明细，后续核销继续往明细表追加。
@@ -90,10 +91,11 @@ public class BookkeepingServiceImpl implements IBookkeepingService
         }
         List<BookkeepingPayment> payments = bookkeepingMapper.selectBookkeepingPaymentListByBookkeepingId(bookkeeping.getBookkeepingId());
         validateEntryType(bookkeeping.getEntryType());
-        FundAccount fundAccount = requireAvailableAccount(bookkeeping.getFundAccountId(), existing.getFundAccountId());
         fillUpdateAmounts(bookkeeping, existing, payments);
+        FundAccount fundAccount = resolveFundAccountForSave(bookkeeping.getFundAccountId(), bookkeeping.getEntryType(),
+            bookkeeping.getPaidAmount(), existing.getFundAccountId());
         bookkeeping.setEntryNo(existing.getEntryNo());
-        bookkeeping.setFundAccountName(fundAccount.getAccountName());
+        fillFundAccountInfo(bookkeeping, fundAccount);
         bookkeeping.setDelFlag(existing.getDelFlag());
         int rows = bookkeepingMapper.updateBookkeeping(bookkeeping);
         // 已有多笔收款时只更新主单，不重写历史收款明细，避免把核销链路改乱。
@@ -293,6 +295,31 @@ public class BookkeepingServiceImpl implements IBookkeepingService
             throw new ServiceException("资金账户已停用，不能用于新单录入");
         }
         return fundAccount;
+    }
+
+    private FundAccount resolveFundAccountForSave(Long fundAccountId, String entryType, BigDecimal paidAmount, Long allowDisabledId)
+    {
+        if (fundAccountId == null)
+        {
+            if (isIncome(entryType) && safeAmount(paidAmount).compareTo(BigDecimal.ZERO) <= 0)
+            {
+                return null;
+            }
+            throw new ServiceException("资金账户不能为空");
+        }
+        return requireAvailableAccount(fundAccountId, allowDisabledId);
+    }
+
+    private void fillFundAccountInfo(Bookkeeping bookkeeping, FundAccount fundAccount)
+    {
+        if (StringUtils.isNull(fundAccount))
+        {
+            bookkeeping.setFundAccountId(null);
+            bookkeeping.setFundAccountName("");
+            bookkeeping.setPaymentMethod(null);
+            return;
+        }
+        bookkeeping.setFundAccountName(fundAccount.getAccountName());
     }
 
     private void validateEntryType(String entryType)

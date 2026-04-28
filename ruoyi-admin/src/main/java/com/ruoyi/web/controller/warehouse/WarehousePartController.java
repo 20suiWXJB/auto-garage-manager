@@ -59,7 +59,7 @@ public class WarehousePartController extends BaseController
     }
 
     @Operation(summary = "查询配件下拉选项")
-    @PreAuthorize("@ss.hasAnyPermi('warehouse:part:list,warehouse:stock:list,warehouse:stock:in,warehouse:stock:out,warehouse:stock:adjust')")
+    @PreAuthorize("@ss.hasAnyPermi('warehouse:part:list,warehouse:stock:list,warehouse:stock:in,warehouse:stock:out,warehouse:stock:adjust,order:list,order:add,order:edit,order:complete')")
     @GetMapping("/options")
     public AjaxResult options()
     {

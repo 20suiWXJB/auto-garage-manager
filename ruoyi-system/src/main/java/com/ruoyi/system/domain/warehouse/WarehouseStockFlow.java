@@ -27,6 +27,9 @@ public class WarehouseStockFlow extends BaseEntity
     @Excel(name = "业务类型", dictType = "warehouse_stock_type")
     private String businessType;
 
+    @Excel(name = "业务单号")
+    private String businessNo;
+
     private Long partId;
 
     @Excel(name = "配件编码")
@@ -94,6 +97,16 @@ public class WarehouseStockFlow extends BaseEntity
     public Long getPartId()
     {
         return partId;
+    }
+
+    public String getBusinessNo()
+    {
+        return businessNo;
+    }
+
+    public void setBusinessNo(String businessNo)
+    {
+        this.businessNo = businessNo;
     }
 
     public void setPartId(Long partId)
@@ -218,6 +231,7 @@ public class WarehouseStockFlow extends BaseEntity
             .append("stockFlowId", getStockFlowId())
             .append("flowNo", getFlowNo())
             .append("businessType", getBusinessType())
+            .append("businessNo", getBusinessNo())
             .append("partId", getPartId())
             .append("partCode", getPartCode())
             .append("partName", getPartName())
